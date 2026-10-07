@@ -27,23 +27,20 @@ def health():
     db_url = os.getenv("DATABASE_URL")
     redis_url = os.getenv("REDIS_URL")
     
-    # Check dependencies. 
-    # Operational risk check: If DATABASE_URL is not set, use fallback in-memory SQLite (unstable for prod)
+    # Report configuration presence without claiming a live dependency connection.
     if db_url:
-        db_status = "connected"
-        logger.info("Database status: CONNECTED")
+        db_status = "configured"
+        logger.info("Database configuration is present")
     else:
-        db_status = "warning_fallback_sqlite"
-        logger.warning("DATABASE_URL is not set! Using unstable, volatile in-memory SQLite fallback.")
+        db_status = "missing_config"
+        logger.warning("DATABASE_URL is not set")
 
-    # Check cache dependency.
-    # Operational risk check: If REDIS_URL is not set, use local in-memory dict cache (non-distributed)
     if redis_url:
-        redis_status = "connected"
-        logger.info("Redis cache status: CONNECTED")
+        redis_status = "configured"
+        logger.info("Redis configuration is present")
     else:
-        redis_status = "warning_fallback_local"
-        logger.warning("REDIS_URL is not set! Using volatile local in-memory dict cache fallback.")
+        redis_status = "missing_config"
+        logger.warning("REDIS_URL is not set")
 
     status_code = 200
     
@@ -55,6 +52,19 @@ def health():
             "redis": redis_status
         }
     }), status_code
+
+@app.route("/ready", methods=["GET"])
+def readiness():
+    checks = {
+        "database": "configured" if os.getenv("DATABASE_URL") else "missing_config",
+        "redis": "configured" if os.getenv("REDIS_URL") else "missing_config",
+    }
+    ready = all(value == "configured" for value in checks.values())
+    return jsonify({
+        "status": "ready" if ready else "not_ready",
+        "version": VERSION,
+        "checks": checks,
+    }), 200 if ready else 503
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))

@@ -17,7 +17,7 @@ graph TD
 ## System Requirements
 
 - **Python Version**: 3.11
-- **Primary Framework**: Flask 3.0.2
+- **Primary Framework**: Flask 3.1.3
 - **Production Server**: Gunicorn 22.0.0
 - **External Dependencies**:
   - PostgreSQL (via `DATABASE_URL` environment variable)
